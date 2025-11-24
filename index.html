@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>百家樂分析器 (DG 燒牌版)</title>
+<title>百家樂分析器 (手動燒牌版)</title>
 <style>
   body { font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; }
   h1 { text-align: center; }
@@ -15,7 +15,7 @@
 </style>
 </head>
 <body>
-<h1>百家樂分析器 (DG 燒牌版)</h1>
+<h1>百家樂分析器 (手動燒牌版)</h1>
 
 <div class="section">
   <h3>輸入本局牌（1=A，11/12/13=J/Q/K，空格表示未補牌）</h3>
@@ -32,8 +32,9 @@
 </div>
 
 <div class="section">
-  <h3>燒牌（翻第一張牌作為燒牌）</h3>
-  <button id="burnCardBtn">翻開第一張牌燒牌</button>
+  <h3>燒牌（輸入燒牌張數 1~13）</h3>
+  <input type="number" id="burnInput" min="1" max="13" placeholder="1-13">
+  <button id="setBurnBtn">設定燒牌</button>
   <div class="result" id="burnCard">尚未燒牌</div>
 </div>
 
@@ -59,10 +60,10 @@
 
 <script>
 let totalExpectation = 0;
-let deck = []; // 剩餘牌堆
+let deck = [];
 let burnCount = 0;
 
-// 初始化 8 副牌
+// 初始化 8 副牌，洗牌
 function initDeck() {
   deck = [];
   for(let i=0;i<8;i++){
@@ -70,6 +71,7 @@ function initDeck() {
       deck.push(j);
     }
   }
+  deck.sort(() => Math.random() - 0.5); // 洗牌
 }
 
 // 將輸入牌轉為數字，空格或無效視為0
@@ -79,17 +81,17 @@ function convertCard(val) {
   return val;
 }
 
-// DG 燒牌規則
-function burnCard() {
-  if(deck.length===0) return 0;
-  let firstCard = deck[0];
-  let count = firstCard;
-  if(firstCard > 10) count = 10; // J/Q/K=10
-  // 從牌堆移除燒掉的牌
-  deck.splice(0, count);
-  burnCount = count;
-  document.getElementById("burnCard").textContent = "燒牌數：" + burnCount + "（翻開牌：" + firstCard + "）";
-}
+// 設定手動燒牌
+document.getElementById("setBurnBtn").addEventListener("click", () => {
+    let burnVal = parseInt(document.getElementById("burnInput").value);
+    if(isNaN(burnVal) || burnVal < 1 || burnVal > 13){
+        alert("請輸入 1~13 的數字");
+        return;
+    }
+    deck.splice(0, burnVal); // 從牌堆扣掉燒牌數
+    burnCount = burnVal;
+    document.getElementById("burnCard").textContent = "燒牌數：" + burnCount;
+});
 
 // 計算期望值
 function calculateExpectation(playerCards, bankerCards, lastResult) {
@@ -101,7 +103,7 @@ function calculateExpectation(playerCards, bankerCards, lastResult) {
 
   let expectation = 0;
   if (!lastResult) {
-    // 第一局，用簡單理論概率示範
+    // 第一局簡單示範
     expectation = 0.05; 
   } else {
     if (lastResult === "banker") expectation = 1.06;
@@ -120,10 +122,6 @@ function recommendNext(totalExpectation) {
 
 // 初始化牌堆
 initDeck();
-
-document.getElementById("burnCardBtn").addEventListener("click", () => {
-  burnCard();
-});
 
 document.getElementById("calculate").addEventListener("click", () => {
   let playerCards = [
@@ -153,6 +151,7 @@ document.getElementById("shuffle").addEventListener("click", () => {
   document.getElementById("banker1").value = "";
   document.getElementById("banker2").value = "";
   document.getElementById("banker3").value = "";
+  document.getElementById("burnInput").value = "";
   document.getElementById("lastResult").value = "";
   document.getElementById("burnCard").textContent = "尚未燒牌";
   document.getElementById("expectation").textContent = "累計期望值：0";
