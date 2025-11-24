@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Baccarat RC Simulator</title>
+  <link rel="stylesheet" href="styles.css">
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <header>
+    <h1>百家樂 RC (Running Count) 模擬器</h1>
+    <p>支援燒牌 (burn card)、8 副牌鞋、顯示可見 RC 與真實 RC、匯出 CSV。</p>
+  </header>
+
+  <main>
+    <section class="controls">
+      <label>模擬目標局數：<input id="targetRounds" type="number" value="1000" min="100" step="100"></label>
+      <label>每鞋最大局數：<input id="maxPerShoe" type="number" value="500" min="50"></label>
+      <button id="runBtn">開始模擬</button>
+      <button id="downloadCsv" disabled>下載 CSV</button>
+    </section>
+
+    <section class="stats" id="statsSection" hidden>
+      <h2>模擬摘要</h2>
+      <div id="summary"></div>
+      <h3>門檻穿越摘要</h3>
+      <div id="thresholds"></div>
+    </section>
+
+    <section class="chartArea" id="chartSection" hidden>
+      <h2>RC 時序（前 200 局）</h2>
+      <canvas id="rcChart" height="120"></canvas>
+    </section>
+
+    <section class="tableArea" id="tableSection" hidden>
+      <h2>前 200 局紀錄</h2>
+      <table id="recordsTable">
+        <thead><tr><th>#</th><th>Winner</th><th>Visible RC</th><th>True RC</th><th>Cards Left</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <footer>
+      <p>說明：此為教學與模擬工具，請勿用於違法或未授權的賭博活動。</p>
+    </footer>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
