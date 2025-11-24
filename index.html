@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>百家樂分析器</title>
+<style>
+  body { font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; }
+  h1 { text-align: center; }
+  .section { margin-bottom: 20px; }
+  input { width: 50px; margin-right: 5px; }
+  button { margin-right: 10px; padding: 5px 10px; }
+  select { padding: 5px; }
+  .result { margin-top: 10px; font-weight: bold; }
+</style>
+</head>
+<body>
+<h1>百家樂分析器</h1>
+
+<div class="section">
+  <h3>輸入本局牌（1=A，11/12/13=J/Q/K，空格表示未補牌）</h3>
+  <div>
+    閒家: <input type="number" id="player1" min="1" max="13">
+          <input type="number" id="player2" min="1" max="13">
+          <input type="number" id="player3" min="1" max="13">
+  </div>
+  <div>
+    莊家: <input type="number" id="banker1" min="1" max="13">
+          <input type="number" id="banker2" min="1" max="13">
+          <input type="number" id="banker3" min="1" max="13">
+  </div>
+</div>
+
+<div class="section">
+  <h3>燒牌（只開一張牌）</h3>
+  <select id="burn">
+    <option value="0">不燒牌</option>
+    <option value="1">燒牌一張</option>
+  </select>
+</div>
+
+<div class="section">
+  <h3>上一局結果（第一局可不選）</h3>
+  <select id="lastResult">
+    <option value="">第一局可不選</option>
+    <option value="banker">莊家勝</option>
+    <option value="player">閒家勝</option>
+    <option value="tie">和局</option>
+  </select>
+</div>
+
+<div class="section">
+  <button id="calculate">計算累計期望值</button>
+  <button id="shuffle">洗牌 / 重新計算</button>
+</div>
+
+<div class="section">
+  <div class="result" id="expectation">累計期望值：0</div>
+  <div class="result" id="recommendation">推薦下注：-</div>
+</div>
+
+<script>
+let totalExpectation = 0;
+
+// 將輸入牌轉為數字，空格或無效視為0
+function convertCard(val) {
+  val = parseInt(val);
+  if (isNaN(val) || val < 1 || val > 13) return 0;
+  return val;
+}
+
+// 模擬剩餘牌堆（示範，可改進成完整牌統計）
+let fullDeck = Array(8*13).fill(0).map((_,i)=>i%13+1); // 8 副牌
+
+function removeBurnCard(deck) {
+  // 燒牌只扣一張，隨機從牌堆移除
+  if(deck.length === 0) return;
+  let index = Math.floor(Math.random()*deck.length);
+  deck.splice(index,1);
+}
+
+// 計算期望值
+function calculateExpectation(playerCards, bankerCards, lastResult, burnCount) {
+  let deck = fullDeck.slice(); // 複製完整牌堆
+  // 扣掉燒牌
+  if(burnCount === 1) removeBurnCard(deck);
+  // 扣掉輸入的牌
+  [...playerCards,...bankerCards].forEach(c=>{
+    let index = deck.indexOf(c);
+    if(index>=0) deck.splice(index,1);
+  });
+
+  let expectation = 0;
+  if (!lastResult) {
+    // 第一局，用簡單理論概率示範
+    expectation = 0.05; 
+  } else {
+    if (lastResult === "banker") expectation = 1.06;
+    else if (lastResult === "player") expectation = 0.94;
+    else if (lastResult === "tie") expectation = 0;
+  }
+  return expectation;
+}
+
+// 推薦下注
+function recommendNext(totalExpectation) {
+  if (totalExpectation > 0) return "莊家";
+  else if (totalExpectation < 0) return "閒家";
+  else return "-";
+}
+
+document.getElementById("calculate").addEventListener("click", () => {
+  let playerCards = [
+    convertCard(document.getElementById("player1").value),
+    convertCard(document.getElementById("player2").value),
+    convertCard(document.getElementById("player3").value)
+  ];
+  let bankerCards = [
+    convertCard(document.getElementById("banker1").value),
+    convertCard(document.getElementById("banker2").value),
+    convertCard(document.getElementById("banker3").value)
+  ];
+  let lastResult = document.getElementById("lastResult").value;
+  let burnCount = parseInt(document.getElementById("burn").value) || 0;
+
+  let expectation = calculateExpectation(playerCards, bankerCards, lastResult, burnCount);
+  totalExpectation += expectation;
+
+  document.getElementById("expectation").textContent = "累計期望值：" + totalExpectation.toFixed(2);
+  document.getElementById("recommendation").textContent = "推薦下注：" + recommendNext(totalExpectation);
+});
+
+document.getElementById("shuffle").addEventListener("click", () => {
+  totalExpectation = 0;
+  document.getElementById("player1").value = "";
+  document.getElementById("player2").value = "";
+  document.getElementById("player3").value = "";
+  document.getElementById("banker1").value = "";
+  document.getElementById("banker2").value = "";
+  document.getElementById("banker3").value = "";
+  document.getElementById("burn").value = 0;
+  document.getElementById("lastResult").value = "";
+  document.getElementById("expectation").textContent = "累計期望值：0";
+  document.getElementById("recommendation").textContent = "推薦下注：-";
+});
+</script>
+
+</body>
+</html>
