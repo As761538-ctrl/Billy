@@ -3,161 +3,171 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>百家樂分析器 (手動燒牌版)</title>
+<title>百家樂分析器（DG 手動燒牌版）</title>
 <style>
-  body { font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; }
-  h1 { text-align: center; }
-  .section { margin-bottom: 20px; }
-  input { width: 50px; margin-right: 5px; }
-  button { margin-right: 10px; padding: 5px 10px; }
-  select { padding: 5px; }
-  .result { margin-top: 10px; font-weight: bold; }
+  body {
+    font-family: Arial, sans-serif;
+    max-width: 600px;
+    margin: auto;
+    padding: 20px;
+  }
+  h1 {
+    text-align: center;
+  }
+  .section {
+    margin-bottom: 20px;
+  }
+  input, select, button {
+    padding: 6px;
+    margin: 4px 2px;
+  }
+  input {
+    width: 55px;
+  }
+  button {
+    cursor: pointer;
+  }
+  .result {
+    margin-top: 10px;
+    font-weight: bold;
+  }
 </style>
 </head>
+
 <body>
-<h1>百家樂分析器 (手動燒牌版)</h1>
+
+<h1>百家樂分析器（DG 手動燒牌）</h1>
 
 <div class="section">
-  <h3>輸入本局牌（1=A，11/12/13=J/Q/K，空格表示未補牌）</h3>
-  <div>
-    閒家: <input type="number" id="player1" min="1" max="13">
-          <input type="number" id="player2" min="1" max="13">
-          <input type="number" id="player3" min="1" max="13">
-  </div>
-  <div>
-    莊家: <input type="number" id="banker1" min="1" max="13">
-          <input type="number" id="banker2" min="1" max="13">
-          <input type="number" id="banker3" min="1" max="13">
-  </div>
+  <h3>燒牌（只在第一局設定）</h3>
+  <input type="number" id="burnInput" min="1" max="13" placeholder="1-13">
+  <button id="setBurnBtn">設定燒牌</button>
+  <div class="result" id="burnInfo">尚未設定燒牌</div>
 </div>
 
 <div class="section">
-  <h3>燒牌（輸入燒牌張數 1~13）</h3>
-  <input type="number" id="burnInput" min="1" max="13" placeholder="1-13">
-  <button id="setBurnBtn">設定燒牌</button>
-  <div class="result" id="burnCard">尚未燒牌</div>
+  <h3>本局開牌（1=A，11/12/13=J/Q/K）</h3>
+  <div>
+    閒：
+    <input id="p1" type="number" min="1" max="13">
+    <input id="p2" type="number" min="1" max="13">
+    <input id="p3" type="number" min="1" max="13">
+  </div>
+  <div>
+    莊：
+    <input id="b1" type="number" min="1" max="13">
+    <input id="b2" type="number" min="1" max="13">
+    <input id="b3" type="number" min="1" max="13">
+  </div>
 </div>
 
 <div class="section">
   <h3>上一局結果（第一局可不選）</h3>
   <select id="lastResult">
-    <option value="">第一局可不選</option>
-    <option value="banker">莊家勝</option>
-    <option value="player">閒家勝</option>
+    <option value="">第一局</option>
+    <option value="banker">莊贏</option>
+    <option value="player">閒贏</option>
     <option value="tie">和局</option>
   </select>
 </div>
 
 <div class="section">
-  <button id="calculate">計算累計期望值</button>
-  <button id="shuffle">洗牌 / 重新計算</button>
+  <button id="calcBtn">計算</button>
+  <button id="shuffleBtn">洗牌 / 重置</button>
 </div>
 
 <div class="section">
-  <div class="result" id="expectation">累計期望值：0</div>
-  <div class="result" id="recommendation">推薦下注：-</div>
+  <div class="result" id="evText">累計期望值：0</div>
+  <div class="result" id="recText">推薦下注：-</div>
 </div>
 
 <script>
-let totalExpectation = 0;
 let deck = [];
-let burnCount = 0;
+let totalEV = 0;
+let burned = false;
 
-// 初始化 8 副牌，洗牌
+// 初始化 8 副牌
 function initDeck() {
   deck = [];
-  for(let i=0;i<8;i++){
-    for(let j=1;j<=13;j++){
+  for (let i = 0; i < 8; i++) {
+    for (let j = 1; j <= 13; j++) {
       deck.push(j);
     }
   }
-  deck.sort(() => Math.random() - 0.5); // 洗牌
+  deck.sort(() => Math.random() - 0.5);
 }
 
-// 將輸入牌轉為數字，空格或無效視為0
-function convertCard(val) {
-  val = parseInt(val);
-  if (isNaN(val) || val < 1 || val > 13) return 0;
-  return val;
+// 轉換輸入
+function cardVal(v) {
+  let n = parseInt(v);
+  if (isNaN(n) || n < 1 || n > 13) return null;
+  return n;
 }
 
-// 設定手動燒牌
-document.getElementById("setBurnBtn").addEventListener("click", () => {
-    let burnVal = parseInt(document.getElementById("burnInput").value);
-    if(isNaN(burnVal) || burnVal < 1 || burnVal > 13){
-        alert("請輸入 1~13 的數字");
-        return;
-    }
-    deck.splice(0, burnVal); // 從牌堆扣掉燒牌數
-    burnCount = burnVal;
-    document.getElementById("burnCard").textContent = "燒牌數：" + burnCount;
-});
+// 設定燒牌（只執行一次）
+document.getElementById("setBurnBtn").onclick = () => {
+  if (burned) {
+    alert("燒牌已設定，洗牌後才能重新設定");
+    return;
+  }
+  let burn = parseInt(document.getElementById("burnInput").value);
+  if (isNaN(burn) || burn < 1 || burn > 13) {
+    alert("請輸入 1~13");
+    return;
+  }
+  deck.splice(0, burn);
+  burned = true;
+  document.getElementById("burnInfo").textContent = "燒牌張數：" + burn;
+};
 
-// 計算期望值
-function calculateExpectation(playerCards, bankerCards, lastResult) {
-  // 扣掉輸入的牌
-  [...playerCards,...bankerCards].forEach(c=>{
-    let index = deck.indexOf(c);
-    if(index>=0) deck.splice(index,1);
+// 計算
+document.getElementById("calcBtn").onclick = () => {
+
+  let cards = [
+    cardVal(p1.value), cardVal(p2.value), cardVal(p3.value),
+    cardVal(b1.value), cardVal(b2.value), cardVal(b3.value)
+  ].filter(v => v !== null);
+
+  // 從牌堆移除已出現的牌
+  cards.forEach(c => {
+    let idx = deck.indexOf(c);
+    if (idx >= 0) deck.splice(idx, 1);
   });
 
-  let expectation = 0;
-  if (!lastResult) {
-    // 第一局簡單示範
-    expectation = 0.05; 
-  } else {
-    if (lastResult === "banker") expectation = 1.06;
-    else if (lastResult === "player") expectation = 0.94;
-    else if (lastResult === "tie") expectation = 0;
-  }
-  return expectation;
-}
+  let last = document.getElementById("lastResult").value;
 
-// 推薦下注
-function recommendNext(totalExpectation) {
-  if (totalExpectation > 0) return "莊家";
-  else if (totalExpectation < 0) return "閒家";
-  else return "-";
-}
+  // 期望值（示意，之後可升級）
+  let ev = 0;
+  if (last === "banker") ev = 1;
+  else if (last === "player") ev = -1;
+  else ev = 0;
 
-// 初始化牌堆
-initDeck();
+  totalEV += ev;
 
-document.getElementById("calculate").addEventListener("click", () => {
-  let playerCards = [
-    convertCard(document.getElementById("player1").value),
-    convertCard(document.getElementById("player2").value),
-    convertCard(document.getElementById("player3").value)
-  ];
-  let bankerCards = [
-    convertCard(document.getElementById("banker1").value),
-    convertCard(document.getElementById("banker2").value),
-    convertCard(document.getElementById("banker3").value)
-  ];
-  let lastResult = document.getElementById("lastResult").value;
+  document.getElementById("evText").textContent =
+    "累計期望值：" + totalEV.toFixed(2);
 
-  let expectation = calculateExpectation(playerCards, bankerCards, lastResult);
-  totalExpectation += expectation;
+  document.getElementById("recText").textContent =
+    totalEV > 0 ? "推薦下注：莊" :
+    totalEV < 0 ? "推薦下注：閒" : "推薦下注：-";
 
-  document.getElementById("expectation").textContent = "累計期望值：" + totalExpectation.toFixed(2);
-  document.getElementById("recommendation").textContent = "推薦下注：" + recommendNext(totalExpectation);
-});
+  // ⭐ 自動清空本局輸入
+  p1.value = p2.value = p3.value = "";
+  b1.value = b2.value = b3.value = "";
+};
 
-document.getElementById("shuffle").addEventListener("click", () => {
-  totalExpectation = 0;
-  document.getElementById("player1").value = "";
-  document.getElementById("player2").value = "";
-  document.getElementById("player3").value = "";
-  document.getElementById("banker1").value = "";
-  document.getElementById("banker2").value = "";
-  document.getElementById("banker3").value = "";
-  document.getElementById("burnInput").value = "";
-  document.getElementById("lastResult").value = "";
-  document.getElementById("burnCard").textContent = "尚未燒牌";
-  document.getElementById("expectation").textContent = "累計期望值：0";
-  document.getElementById("recommendation").textContent = "推薦下注：-";
+// 洗牌
+document.getElementById("shuffleBtn").onclick = () => {
   initDeck();
-});
+  totalEV = 0;
+  burned = false;
+  document.getElementById("burnInput").value = "";
+  document.getElementById("burnInfo").textContent = "尚未設定燒牌";
+  document.getElementById("evText").textContent = "累計期望值：0";
+  document.getElementById("recText").textContent = "推薦下注：-";
+};
+
+initDeck();
 </script>
 
 </body>
